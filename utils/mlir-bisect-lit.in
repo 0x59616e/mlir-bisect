@@ -1,0 +1,23 @@
+#!@Python3_EXECUTABLE@
+# -*- coding: utf-8 -*-
+
+import os
+import lit
+
+config_map = {}
+
+def map_config(source_dir, site_config):
+    global config_map
+    source_dir = os.path.abspath(source_dir)
+    source_dir = os.path.normcase(source_dir)
+    site_config = os.path.normpath(site_config)
+    config_map[source_dir] = site_config
+
+map_config(r'@PROJECT_SOURCE_DIR@/test/lit.cfg.py', r'@CMAKE_BINARY_DIR@/test/lit.site.cfg.py')
+
+builtin_parameters = { 'build_mode' : '.' }
+builtin_parameters['config_map'] = config_map
+
+if __name__=='__main__':
+    from lit.main import main
+    main(builtin_parameters)

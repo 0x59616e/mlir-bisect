@@ -18,3 +18,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 add_subdirectory(src)
 add_subdirectory(utils)
 add_subdirectory(test)
+
+add_custom_target(check
+    command ${CMAKE_BINARY_DIR}/utils/mlir-bisect-lit -sv ${CMAKE_BINARY_DIR}/test
+    COMMENT "Running test suite ..."
+    USES_TERMINAL
+)

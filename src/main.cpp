@@ -155,6 +155,9 @@ static int execute() {
     markAsFailed(checkedValue);
 
   auto status = searchCulprit(mod, idomMap);
+  if (status == SearchStatus::FoundSuccessfully)
+    llvm::errs() << "Culprit found successfully. Bisect over\n";
+
   saveMLIR(mod, status);
 
   return 0;

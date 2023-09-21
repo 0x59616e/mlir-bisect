@@ -5,6 +5,7 @@
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Value.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/ErrorHandling.h"
 
 #include <queue>
 
@@ -51,47 +52,49 @@ static mlir::Value doBinarySearch(llvm::ArrayRef<mlir::Value> dominators) {
 }
 
 static bool isThisValueCulprit(mlir::Value value) {
+  assert(isFailed(value));
+
   if (llvm::isa<mlir::BlockArgument>(value))
     return false;
 
   mlir::Operation *op = value.getDefiningOp();
 
-  for (auto operand : op->getOperands()) {
-    if (isFailedOrUnknown(operand))
-      return false;
-  }
+  return llvm::all_of(op->getOperands(),
+                      [](mlir::Value operand) { return isSuccess(operand); });
+}
 
-  return true;
+mlir::Value searchCulprit(mlir::Value value, const IDomMapT &idomMap) {
+  if (isUnknown(value))
+    return value;
+
+  auto dominators = getDominators(value, idomMap);
+  mlir::Value possibleCulprit = doBinarySearch(dominators);
+
+  if (isUnknown(possibleCulprit) || isThisValueCulprit(possibleCulprit))
+    return possibleCulprit;
+
+  for (auto operand : possibleCulprit.getDefiningOp()->getOperands())
+    if (isFailed(operand))
+      return searchCulprit(operand, idomMap);
+
+  for (auto operand : possibleCulprit.getDefiningOp()->getOperands())
+    if (isUnknown(operand))
+      return searchCulprit(operand, idomMap);
+
+  llvm_unreachable("should not be here");
 }
 
 SearchStatus searchCulprit(mlir::ModuleOp mod, const IDomMapT &idomMap) {
-  std::queue<mlir::Value> searchQueue;
-  searchQueue.push(getReturnValue(mod));
-
-  while (!searchQueue.empty()) {
-    mlir::Value value = searchQueue.front();
-    searchQueue.pop();
-    if (isUnknown(value)) {
-      markAsChecking(value);
-      return SearchStatus::YetToBeFound;
-    }
-
-    auto dominators = getDominators(value, idomMap);
-    mlir::Value possibleCulprit = doBinarySearch(dominators);
-    if (isUnknown(possibleCulprit)) {
-      markAsChecking(possibleCulprit);
-      return SearchStatus::YetToBeFound;
-    }
-
-    if (isThisValueCulprit(possibleCulprit)) {
-      markAsCulprit(possibleCulprit);
-      return SearchStatus::FoundSuccessfully;
-    }
-
-    for (auto pred : value.getDefiningOp()->getOperands())
-      if (isFailedOrUnknown(pred))
-        searchQueue.push(pred);
+  mlir::Value value = searchCulprit(getReturnValue(mod), idomMap);
+  if (isUnknown(value)) {
+    markAsChecking(value);
+    return SearchStatus::YetToBeFound;
   }
 
-  llvm_unreachable("unimplemented");
+  if (isFailed(value)) {
+    markAsCulprit(value);
+    return SearchStatus::FoundSuccessfully;
+  }
+
+  llvm_unreachable("should not be here");
 }

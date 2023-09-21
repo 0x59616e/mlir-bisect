@@ -1,11 +1,14 @@
 add_executable(mlir-bisect
     main.cpp
-    DomTree.cpp)
+    DomTree.cpp
+    OpMarker.cpp
+    Bisect.cpp)
 
 target_link_libraries(mlir-bisect
     MLIRIR
     LLVMSupport
     MLIRParser
     MLIRFuncDialect
-    MLIRArithDialect)
+    MLIRArithDialect
+    MLIRTransforms)
 

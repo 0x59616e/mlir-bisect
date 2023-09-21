@@ -20,13 +20,25 @@ static void dumpDominators(ValueToDominatorSetMapT &dominatorMap) {
   }
 }
 
-void dumpIDom(const IDomMapT &idomMap) {
-  for (auto [value, _] : idomMap) {
+void dumpIDom(const IDomMapT &idomMap, mlir::ModuleOp mod) {
+  llvm::SmallVector<mlir::Value> values;
+
+  for (auto [value, _] : idomMap)
+    if (llvm::isa<mlir::BlockArgument>(value))
+      values.push_back(value);
+
+  mod.walk([&](mlir::Operation *op) {
+    values.append(op->getResults().begin(), op->getResults().end());
+  });
+
+  for (mlir::Value value : values) {
     value.print(llvm::outs());
     llvm::outs() << "\n";
   }
+
   llvm::outs() << "---\n";
-  for (auto [value, dominator] : idomMap) {
+  for (mlir::Value value : values) {
+    mlir::Value dominator = idomMap.find(value)->second;
     dominator.print(llvm::outs());
     llvm::outs() << " => ";
     value.print(llvm::outs());

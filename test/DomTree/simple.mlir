@@ -1,4 +1,4 @@
-// RUN: %mlir-bisect --dump-idom --start=%s | %FileCheck %s
+// RUN: %mlir-bisect --dump-idom %s | %FileCheck %s
 // CHECK-DAG: [[D:%[0-9]+]] = "test.D"
 // CHECK-DAG: [[B:%[0-9]+]] = "test.B"
 // CHECK-DAG: [[A:%[0-9]+]] = "test.A"
@@ -7,13 +7,13 @@
 // CHECK-DAG: [[ARG0:<block argument> of type 'tensor<f32>' at index: 0]]
 // CHECK-DAG: [[F:%[0-9]+]] = "test.F"
 // CHECK: ---
-// CHECK-DAG: [[ARG0]] => [[C]]
 // CHECK-DAG: <<NULL VALUE>> => [[ARG0]]
+// CHECK-DAG: [[ARG0]] => [[C]]
 // CHECK-DAG: [[ARG0]] => [[B]]
-// CHECK-DAG: [[B]]{{.+}}=> [[D]]
-// CHECK-DAG: [[ARG0]] => [[A]]
-// CHECK-DAG: [[D]]{{.+}} => [[E]]
 // CHECK-DAG: [[ARG0]] => [[F]]
+// CHECK-DAG: [[ARG0]] => [[A]]
+// CHECK-DAG: [[B]]{{.+}}=> [[D]]
+// CHECK-DAG: [[D]]{{.+}} => [[E]]
 
 func.func @identity(%arg0: tensor<f32>) -> tensor<f32> {
   %0 = "test.A"(%arg0) : (tensor<f32>) -> tensor<f32>

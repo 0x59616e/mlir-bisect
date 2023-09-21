@@ -7,18 +7,26 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
 
-static llvm::cl::opt<std::string>
-    start("start", llvm::cl::desc("The file your want to bisect"),
-          llvm::cl::init(""));
+static llvm::cl::opt<bool> start(
+    "start",
+    llvm::cl::desc(
+        "The flag you should specify when doing bisect at the first time"),
+    llvm::cl::init(false));
+
+static llvm::cl::opt<std::string> inputFile(llvm::cl::Positional,
+                                            llvm::cl::desc("<input file>"),
+                                            llvm::cl::init("-"));
 
 static llvm::cl::opt<bool> shouldDumpIDom("dump-idom",
                                           llvm::cl::desc("Dump the idom"),
                                           llvm::cl::Hidden);
 
 mlir::ModuleOp loadMLIR(mlir::MLIRContext &context) {
-  llvm::StringRef filename = ".bisect.mlir";
-  if (start != "")
-    filename = start;
+  std::string filename;
+  if (start || shouldDumpIDom)
+    filename = inputFile;
+  else
+    filename = "." + inputFile + ".tmp";
 
   mlir::OwningOpRef<mlir::ModuleOp> mod =
       mlir::parseSourceFile<mlir::ModuleOp>(filename, &context);

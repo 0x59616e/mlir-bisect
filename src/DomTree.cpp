@@ -28,6 +28,8 @@ void dumpIDom(const IDomMapT &idomMap, mlir::ModuleOp mod) {
       values.push_back(value);
 
   mod.walk([&](mlir::Operation *op) {
+    if (llvm::isa<mlir::arith::ConstantOp>(op))
+      return;
     values.append(op->getResults().begin(), op->getResults().end());
   });
 
@@ -58,6 +60,7 @@ static std::vector<mlir::Value> getAllValues(mlir::func::FuncOp func) {
     if (llvm::isa<mlir::arith::ConstantOp, mlir::func::FuncOp>(op))
       return;
 
+    assert(op->getNumOperands() > 0);
     for (auto result : op->getResults())
       allValues.push_back(result);
   });

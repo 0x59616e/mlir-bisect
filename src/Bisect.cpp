@@ -1,13 +1,12 @@
 #include "Bisect.h"
 #include "DomTree.h"
 #include "OpMarker.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Value.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
-
-#include <queue>
 
 static mlir::Value getReturnValue(mlir::ModuleOp mod) {
   auto func = *mod.getOps<mlir::func::FuncOp>().begin();
@@ -16,20 +15,34 @@ static mlir::Value getReturnValue(mlir::ModuleOp mod) {
   return retOp->getOperand(0);
 }
 
-llvm::SmallVector<mlir::Value> getDominators(mlir::Value value,
-                                             const IDomMapT &idomMap) {
-  llvm::SmallVector<mlir::Value> dominators{value};
+static bool getValuesToSearch(mlir::Value value,
+                              std::vector<mlir::Value> &valuesToSearch) {
+  assert(isFailedOrUnknown(value));
 
-  while (true) {
-    auto it = idomMap.find(value);
-    if (it == idomMap.end())
-      break;
+  mlir::Operation *op = value.getDefiningOp();
+  if (llvm::isa<mlir::arith::ConstantOp>(op))
+    return false;
+  assert(op->getNumOperands());
 
-    value = it->second;
-    dominators.push_back(value);
+  valuesToSearch.push_back(value);
+
+  for (auto operand : op->getOperands()) {
+    if (isSuccess(operand)) {
+      valuesToSearch.push_back(operand);
+      return true;
+    }
+    if (isFailedOrUnknown(operand) &&
+        getValuesToSearch(operand, valuesToSearch))
+      return true;
   }
 
-  return dominators;
+  return false;
+}
+
+static std::vector<mlir::Value> getValuesToSearch(mlir::Value value) {
+  std::vector<mlir::Value> valuesToSearch;
+  assert(getValuesToSearch(value, valuesToSearch));
+  return valuesToSearch;
 }
 
 static mlir::Value doBinarySearch(llvm::ArrayRef<mlir::Value> dominators) {
@@ -67,8 +80,8 @@ mlir::Value searchCulprit(mlir::Value value, const IDomMapT &idomMap) {
   if (isUnknown(value))
     return value;
 
-  auto dominators = getDominators(value, idomMap);
-  mlir::Value possibleCulprit = doBinarySearch(dominators);
+  auto valuesToSearch = getValuesToSearch(value);
+  mlir::Value possibleCulprit = doBinarySearch(valuesToSearch);
 
   if (isUnknown(possibleCulprit) || isThisValueCulprit(possibleCulprit))
     return possibleCulprit;

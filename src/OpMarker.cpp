@@ -79,6 +79,9 @@ static bool checkStatus(mlir::Value value, llvm::StringRef status) {
 }
 
 void markAsFailed(mlir::Value value) {
+  if (isFailed(value))
+    return;
+
   markStatus(value, failedStr);
 
   for (auto user : value.getUsers()) {
@@ -89,6 +92,9 @@ void markAsFailed(mlir::Value value) {
 bool isFailed(mlir::Value value) { return checkStatus(value, failedStr); }
 
 void markAsSuccess(mlir::Value value) {
+  if (isSuccess(value))
+    return;
+
   markStatus(value, successStr);
 
   mlir::Operation *op = value.getDefiningOp();

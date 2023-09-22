@@ -3,7 +3,6 @@
 // RUN: %mlir-bisect --start %t/%basename_t -o /dev/null
 // RUN: %mlir-bisect --bad %t/%basename_t -o /dev/null
 // RUN: %mlir-bisect --bad %t/%basename_t -o /dev/null
-// RUN: %mlir-bisect --bad %t/%basename_t -o /dev/null
 // RUN: %mlir-bisect --bad %t/%basename_t -o - | %FileCheck %s
 
 // CHECK: func.func @hard([[ARG0:%[a-z0-9]+]]: tensor<f32>) -> tensor<f32> {

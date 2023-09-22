@@ -2,7 +2,6 @@
 // RUN: cp %s %t
 // RUN: %mlir-bisect --start %t/%basename_t -o /dev/null
 // RUN: %mlir-bisect --bad %t/%basename_t -o /dev/null
-// RUN: %mlir-bisect --bad %t/%basename_t -o /dev/null
 // RUN: %mlir-bisect --good %t/%basename_t -o /dev/null
 // RUN: %mlir-bisect --bad %t/%basename_t -o /dev/null
 // RUN: %mlir-bisect --good %t/%basename_t -o /dev/null

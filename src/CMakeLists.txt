@@ -1,6 +1,5 @@
 add_executable(mlir-bisect
     main.cpp
-    DomTree.cpp
     OpMarker.cpp
     Bisect.cpp)
 

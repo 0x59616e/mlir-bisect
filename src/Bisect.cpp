@@ -1,5 +1,4 @@
 #include "Bisect.h"
-#include "DomTree.h"
 #include "OpMarker.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -45,23 +44,23 @@ static std::vector<mlir::Value> getValuesToSearch(mlir::Value value) {
   return valuesToSearch;
 }
 
-static mlir::Value doBinarySearch(llvm::ArrayRef<mlir::Value> dominators) {
+static mlir::Value doBinarySearch(llvm::ArrayRef<mlir::Value> values) {
   unsigned exclusiveStart = 0;
-  unsigned inclusiveEnd = dominators.size() - 1;
+  unsigned inclusiveEnd = values.size() - 1;
 
   while (inclusiveEnd - exclusiveStart > 1) {
     unsigned middle = (exclusiveStart + inclusiveEnd) / 2;
-    if (isFailed(dominators[middle])) {
+    if (isFailed(values[middle])) {
       exclusiveStart = middle;
-    } else if (isSuccess(dominators[middle])) {
+    } else if (isSuccess(values[middle])) {
       inclusiveEnd = middle;
     } else {
-      return dominators[middle];
+      return values[middle];
       break;
     }
   }
 
-  return dominators[exclusiveStart];
+  return values[exclusiveStart];
 }
 
 static bool isThisValueCulprit(mlir::Value value) {
@@ -76,7 +75,7 @@ static bool isThisValueCulprit(mlir::Value value) {
                       [](mlir::Value operand) { return isSuccess(operand); });
 }
 
-mlir::Value searchCulprit(mlir::Value value, const IDomMapT &idomMap) {
+mlir::Value searchCulprit(mlir::Value value) {
   if (isUnknown(value))
     return value;
 
@@ -88,17 +87,17 @@ mlir::Value searchCulprit(mlir::Value value, const IDomMapT &idomMap) {
 
   for (auto operand : possibleCulprit.getDefiningOp()->getOperands())
     if (isFailed(operand))
-      return searchCulprit(operand, idomMap);
+      return searchCulprit(operand);
 
   for (auto operand : possibleCulprit.getDefiningOp()->getOperands())
     if (isUnknown(operand))
-      return searchCulprit(operand, idomMap);
+      return searchCulprit(operand);
 
   llvm_unreachable("should not be here");
 }
 
-SearchStatus searchCulprit(mlir::ModuleOp mod, const IDomMapT &idomMap) {
-  mlir::Value value = searchCulprit(getReturnValue(mod), idomMap);
+SearchStatus searchCulprit(mlir::ModuleOp mod) {
+  mlir::Value value = searchCulprit(getReturnValue(mod));
   if (isUnknown(value)) {
     markAsChecking(value);
     return SearchStatus::YetToBeFound;

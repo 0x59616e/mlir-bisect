@@ -1,5 +1,4 @@
 #include "Bisect.h"
-#include "DomTree.h"
 #include "OpMarker.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -27,16 +26,12 @@ static llvm::cl::opt<std::string> inputFile(llvm::cl::Positional,
                                             llvm::cl::desc("<input file>"),
                                             llvm::cl::init("-"));
 
-static llvm::cl::opt<bool> shouldDumpIDom("dump-idom",
-                                          llvm::cl::desc("Dump the idom"),
-                                          llvm::cl::Hidden);
-
 static llvm::cl::opt<std::string>
     outputFile("o", llvm::cl::desc("<output file>"), llvm::cl::init("-"));
 
 mlir::ModuleOp loadMLIR(mlir::MLIRContext &context) {
   std::string filename;
-  if (start || shouldDumpIDom)
+  if (start)
     filename = inputFile;
   else
     filename = inputFile + ".bisect";
@@ -128,12 +123,6 @@ static int execute() {
     return -1;
   }
 
-  IDomMapT idomMap = calcIDom(*mod.getOps<mlir::func::FuncOp>().begin());
-  if (shouldDumpIDom) {
-    dumpIDom(idomMap, mod);
-    return 0;
-  }
-
   if (start)
     markReturnValueAsChecking(mod);
   else if (!good ^ bad) {
@@ -154,7 +143,7 @@ static int execute() {
   else
     markAsFailed(checkedValue);
 
-  auto status = searchCulprit(mod, idomMap);
+  auto status = searchCulprit(mod);
   if (status == SearchStatus::FoundSuccessfully)
     llvm::errs() << "Culprit found successfully. Bisect over\n";
 

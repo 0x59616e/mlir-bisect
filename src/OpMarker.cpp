@@ -11,7 +11,6 @@ static const char *checkingStr = "checking";
 static const char *successStr = "success";
 static const char *failedStr = "failed";
 static const char *culpritStr = "culprit";
-static const char *unknownStr = "unknown";
 
 mlir::Value getCheckingValue(mlir::ModuleOp mod) {
   mlir::Value theValue;
@@ -39,7 +38,7 @@ static mlir::ArrayAttr getEmptyStatusAttr(mlir::Operation *op) {
   mlir::MLIRContext *ctx = op->getContext();
   int resultNum = op->getNumResults();
 
-  auto str = mlir::StringAttr::get(ctx, unknownStr);
+  auto str = mlir::StringAttr::get(ctx, "");
   llvm::SmallVector<mlir::Attribute> values(resultNum, str);
 
   return mlir::ArrayAttr::get(ctx, values);
